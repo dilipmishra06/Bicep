@@ -1,0 +1,11 @@
+trigger: none
+
+pool: ""
+
+steps:
+  - task: AzurePowerShell@5
+    inputs:
+      azureSubscription: ""
+      ScriptType: "InlineScript"
+      Inline: "New-AzResourceGroupDeployment -ResourceGroupName exampleRG -TemplateFile main.bicep -Mode Complete"
+      azurePowerShellVersion: "LatestVersion"
