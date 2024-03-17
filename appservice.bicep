@@ -1,25 +1,94 @@
-param webAppName string = uniqueString(resourceGroup().id) // Generate unique String for web app name
-param sku string = 'F1' // The SKU of App Service Plan
-param windowsFxVersion string = 'NODE|20-lts' // The runtime stack of web app
-param location string = resourceGroup().location // Location for all resources
-var appServicePlanName = toLower('AppServicePlan-${webAppName}')
-var webSiteName = toLower('wapp-${webAppName}')
+/*
 
-resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
+``````````````````````````````
+Types for AppService Module
+
+``````````````````````````````
+
+*/
+
+type appServiceDetails = ({
+
+    appServicePrefix: string
+    FxVersion : string
+    webAppPrefix : string
+
+})[]
+
+/*
+
+``````````````````````````````
+Parameters for AppService Module
+
+``````````````````````````````
+
+*/
+
+param sku string = 'F1' // The SKU of App Service Plan
+
+@allowed([
+  'linux'
+  'windows'
+])
+param OperatingSystem string
+
+param location string
+
+param appServices appServiceDetails
+
+/*
+
+``````````````````````````````
+Variables for AppService Module
+
+``````````````````````````````
+
+*/
+
+var appServicePlanName = toLower('AppServicePlan-${substring(uniqueString(resourceGroup().id),0,5)}')
+
+/*
+
+``````````````````````````````
+Resources for AppService Module
+
+``````````````````````````````
+
+*/
+
+resource appServiceWindowsPlan 'Microsoft.Web/serverfarms@2023-01-01' = if (OperatingSystem == 'windows') {
   name: appServicePlanName
   location: location
   sku: {
     name: sku
   }
   kind: 'windows'
+  properties: OperatingSystem == 'linux' ? {
+    reserved: true
+  } : null
 }
-resource appService 'Microsoft.Web/sites@2022-03-01' = {
-  name: webSiteName
+
+resource appServiceLinuxPlan 'Microsoft.Web/serverfarms@2023-01-01' = if (OperatingSystem == 'linux') {
+  name: appServicePlanName
   location: location
-  properties: {
-    serverFarmId: appServicePlan.id
-    siteConfig: {
-      windowsFxVersion: windowsFxVersion
-    }
+  sku: {
+    name: sku
+  }
+  properties:  {
+    reserved: true
   }
 }
+
+
+resource appService 'Microsoft.Web/sites@2023-01-01' = [ for webapp in appServices : {
+  name: '${webapp.webAppPrefix}-${substring(uniqueString(resourceGroup().id),0,5)}'
+  location: location
+  properties: {
+    serverFarmId: OperatingSystem == 'windows' ? appServiceWindowsPlan.id :appServiceLinuxPlan.id
+    siteConfig: OperatingSystem == 'windows' ? {
+      windowsFxVersion: webapp.FxVersion }:{ 
+      linuxFxVersion: OperatingSystem
+    }
+
+  }
+}]

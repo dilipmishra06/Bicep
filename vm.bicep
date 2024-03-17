@@ -1,181 +1,170 @@
-@description('Username for the Virtual Machine.')
-param adminUsername string
+/*
 
-@description('Password for the Virtual Machine.')
-@minLength(12)
-@secure()
-param adminPassword string
+`````````````````````````````````````
+Types used for VirtualMachine Module
 
+`````````````````````````````````````
 
+*/
 
-@description('The Windows version for the VM. This will pick a fully patched image of this given Windows version.')
-@allowed([
-  '2016-datacenter-gensecond'
-  '2016-datacenter-server-core-g2'
-  '2016-datacenter-server-core-smalldisk-g2'
-  '2016-datacenter-smalldisk-g2'
-  '2016-datacenter-with-containers-g2'
-  '2016-datacenter-zhcn-g2'
-  '2019-datacenter-core-g2'
-  '2019-datacenter-core-smalldisk-g2'
-  '2019-datacenter-core-with-containers-g2'
-  '2019-datacenter-core-with-containers-smalldisk-g2'
-  '2019-datacenter-gensecond'
-  '2019-datacenter-smalldisk-g2'
-  '2019-datacenter-with-containers-g2'
-  '2019-datacenter-with-containers-smalldisk-g2'
-  '2019-datacenter-zhcn-g2'
-  '2022-datacenter-azure-edition'
-  '2022-datacenter-azure-edition-core'
-  '2022-datacenter-azure-edition-core-smalldisk'
-  '2022-datacenter-azure-edition-smalldisk'
-  '2022-datacenter-core-g2'
-  '2022-datacenter-core-smalldisk-g2'
-  '2022-datacenter-g2'
-  '2022-datacenter-smalldisk-g2'
-])
-param OSVersion string = '2022-datacenter-azure-edition'
+type virtualMachineDetails = ({
 
-@description('Size of the virtual machine.')
-param vmSize string = 'Standard_D2s_v5'
+    @description('Username for the Virtual Machine.')
+    adminUsername: string
 
-@description('Location for all resources.')
-param location string = resourceGroup().location
+    @description('Password for the Virtual Machine.')
+    @minLength(12)
+    @secure()
+    adminPassword: string
 
-@description('Name of the virtual machine.')
-param vmName string = 'simple-vm'
+    @description('OSimage of the Virtual Machine.')
+    OSVersion: string
 
-@description('Security Type of the Virtual Machine.')
-@allowed([
-  'Standard'
-  'TrustedLaunch'
-])
-param securityType string = 'TrustedLaunch'
+    @description('Size of the Virtual machine.')
+    vmSize: string
 
-param storageAccountURI string
+    @description('Location of the Virtual Machine.')
+    location: string
 
-param nicName string
+    @description('Subnet name for the deployment of Virtual Machine.')
+    virtualNetworkName: string
 
-var securityProfileJson = {
-  uefiSettings: {
-    secureBootEnabled: true
-    vTpmEnabled: true
-  }
-  securityType: securityType
-}
+    @description('Subnet name for the deployment of Virtual Machine.')
+    subnetName: string
 
-param subnetId string
+    @description('Location for all resources.')
+    allocateStaticIP: bool
 
-@description('Name for the Public IP used to access the Virtual Machine.')
-param publicIpName string 
+})[]
 
-@description('Allocation method for the Public IP used to access the Virtual Machine.')
-@allowed([
-  'Dynamic'
-  'Static'
-])
-param publicIPAllocationMethod string = 'Dynamic'
+/*
 
-@description('SKU for the Public IP used to access the Virtual Machine.')
-@allowed([
-  'Basic'
-  'Standard'
-])
-param publicIpSku string = 'Basic'
+`````````````````````````````````````
+Parameters for VirtualMachine Module
 
-@description('Unique DNS Name for the Public IP used to access the Virtual Machine.')
-var dnsLabelPrefix = toLower('${vmName}-${uniqueString(resourceGroup().id, vmName)}')
+`````````````````````````````````````
+
+*/
+
+@description('Object array containing VM details')
+param virtualMachines virtualMachineDetails
 
 
-resource publicIp 'Microsoft.Network/publicIPAddresses@2022-05-01' = {
-  name: publicIpName
-  location: location
-  sku: {
-    name: publicIpSku
-  }
-  properties: {
-    publicIPAllocationMethod: publicIPAllocationMethod
-    dnsSettings: {
-      domainNameLabel: dnsLabelPrefix
+/*
+
+````````````````````````````````````
+Variables for VirtualMachine Module
+
+`````````````````````````````````````
+
+*/
+
+var privateIPAllocationMethod = 'Dynamic'
+var publicIPAllocationMethod = 'Dynamic'
+var publicIpSku = 'Basic'
+
+var osDiskStorageAccountType = 'StandardSSD_LRS'
+var osDiskCreateOption = 'FromImage'
+
+var dataDiskSizeGB = 1024
+var dataDiskCreateOption = 'Empty'
+var dataDiskLogicalUnitNumber = 0
+
+var imageReferencePublisher = 'MicrosoftWindowsServer'
+var imageReferenceOffer = 'WindowsServer'
+var imageReferenceVersion = 'latest'
+
+/*
+
+````````````````````````````````````
+Resources for Virtual Network Module
+
+````````````````````````````````````
+
+*/
+resource publicIps 'Microsoft.Network/publicIPAddresses@2022-05-01' = [
+  for (vm,index) in virtualMachines : if (vm.allocateStaticIP) {
+    name: 'public-vm-${index+1}'
+    location: vm.location
+    sku: {
+      name: publicIpSku
+    }
+    properties: {
+      publicIPAllocationMethod: publicIPAllocationMethod
+      dnsSettings: {
+        domainNameLabel: toLower('vm-${index+1}-${uniqueString(resourceGroup().id)}')
+      }
     }
   }
-}
+]
 
-
-resource nic 'Microsoft.Network/networkInterfaces@2022-05-01' = {
-  name: nicName
-  location: location
-  properties: {
-    ipConfigurations: [
-      {
-        name: 'ipconfig1'
-        properties: {
-          privateIPAllocationMethod: 'Dynamic'
-          publicIPAddress: {
-            id: publicIp.id
-          }
-          subnet: {
-            id: subnetId
-          }
-        }
-      }
-    ]
-  }
-}
-
-
-
-resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = {
-  name: vmName
-  location: location
-  properties: {
-    hardwareProfile: {
-      vmSize: vmSize
-    }
-    osProfile: {
-      computerName: vmName
-      adminUsername: adminUsername
-      adminPassword: adminPassword
-    }
-    storageProfile: {
-      imageReference: {
-        publisher: 'MicrosoftWindowsServer'
-        offer: 'WindowsServer'
-        sku: OSVersion
-        version: 'latest'
-      }
-      osDisk: {
-        createOption: 'FromImage'
-        managedDisk: {
-          storageAccountType: 'StandardSSD_LRS'
-        }
-      }
-      dataDisks: [
+resource nics 'Microsoft.Network/networkInterfaces@2022-05-01' = [
+  for (vm,index) in virtualMachines : {
+    name: 'nic-vm-${index+1}'
+    location: vm.location
+    properties: {
+      ipConfigurations: [
         {
-          diskSizeGB: 1023
-          lun: 0
-          createOption: 'Empty'
+          name: 'ipconfig-${index+1}'
+          properties: {
+            privateIPAllocationMethod: privateIPAllocationMethod
+            publicIPAddress: vm.allocateStaticIP ? {
+              id: resourceId('Microsoft.Network/publicIPAddresses','public-vm-${index+1}')
+            } : null
+            subnet: {
+              id: resourceId('Microsoft.Network/virtualNetworks/subnets',vm.virtualNetworkName,vm.subnetName)
+            }
+          }
         }
       ]
     }
-    networkProfile: {
-      networkInterfaces: [
-        {
-          id: nic.id
+    dependsOn: vm.allocateStaticIP ? [publicIps] : []
+  }
+]
+
+resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = [
+  for (vm,index) in virtualMachines : {
+    name: 'vm-${index+1}'
+    location: vm.location
+
+    properties: {
+      hardwareProfile: {
+        vmSize: vm.vmSize
+      }
+      osProfile: {
+        computerName: 'vm-${index+1}'
+        adminUsername: vm.adminUsername
+        adminPassword: vm.adminPassword
+      }
+      storageProfile: {
+        imageReference: {
+          publisher: imageReferencePublisher
+          offer: imageReferenceOffer
+          sku: vm.OSVersion
+          version: imageReferenceVersion
         }
-      ]
-    }
-    diagnosticsProfile: {
-      bootDiagnostics: {
-        enabled: true
-        storageUri: storageAccountURI
+        osDisk: {
+          createOption: osDiskCreateOption
+          managedDisk: {
+            storageAccountType: osDiskStorageAccountType
+          }
+        }
+        dataDisks: [
+          {
+            diskSizeGB: dataDiskSizeGB
+            lun: dataDiskLogicalUnitNumber
+            createOption: dataDiskCreateOption
+          }
+        ]
+      }
+      networkProfile: {
+        networkInterfaces: [
+          {
+            id: nics[index].id
+          }
+        ]
       }
     }
-    securityProfile: ((securityType == 'TrustedLaunch') ? securityProfileJson : null)
+    dependsOn: vm.allocateStaticIP ? [publicIps] : []
   }
-  dependsOn:[
-    publicIp
-  ]
-}
-
-
+]
