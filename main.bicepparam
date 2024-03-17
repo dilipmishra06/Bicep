@@ -87,8 +87,8 @@ Parameters for Virtual Machines Module
 
 param virtualMachines = [
   {
-    adminUsername: 'adminvmkavi'
-    adminPassword: 'K@v1pr1y@njj'
+    adminUsername: ''
+    adminPassword: ''
     OSVersion: '2022-datacenter-azure-edition'
     vmSize: 'Standard_B1s'
     location: location
@@ -97,8 +97,8 @@ param virtualMachines = [
     allocateStaticIP: false
   }
   {
-    adminUsername: 'adminvmkavipriyan'
-    adminPassword: 'K@v1pr1y@njj'
+    adminUsername: ''
+    adminPassword: ''
     OSVersion: '2022-datacenter-azure-edition'
     vmSize: 'Standard_B1s'
     location: location
@@ -124,7 +124,7 @@ param keyvaultDetailsArray = [
    location: 'East US'
    accessPolicies : [
      {
-      objectId: '21efc58e-ee53-44eb-aa03-b7ca27ab1fe7'
+      objectId: ''
       permissions: {
         keys: ['list']
         secrets: ['list']
@@ -138,7 +138,7 @@ param keyvaultDetailsArray = [
    location: 'East US'
    accessPolicies : [
      {
-      objectId: '21efc58e-ee53-44eb-aa03-b7ca27ab1fe7'
+      objectId: ''
       permissions: {
         keys: ['list']
         secrets: ['list']
