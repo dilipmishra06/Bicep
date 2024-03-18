@@ -41,6 +41,7 @@ param networkSecurityGroup = [
           priority: 300
         }
       }
+      
     ]
   }
   {
@@ -87,24 +88,26 @@ Parameters for Virtual Machines Module
 
 param virtualMachines = [
   {
-    adminUsername: ''
-    adminPassword: ''
+    adminUsername: 'adminvmkavi'
+    adminPassword: 'K@v1pr1y@njj'
     OSVersion: '2022-datacenter-azure-edition'
     vmSize: 'Standard_B1s'
     location: location
     virtualNetworkName: 'Network-a'
     subnetName: 'Network-a-subnet-1'
-    allocateStaticIP: false
+    allocatePublicIP: false
+    osDiskStorageAccountType : 'StandardSSD_LRS'
   }
   {
-    adminUsername: ''
-    adminPassword: ''
+    adminUsername: 'adminvmkavipriyan'
+    adminPassword: 'K@v1pr1y@njj'
     OSVersion: '2022-datacenter-azure-edition'
     vmSize: 'Standard_B1s'
     location: location
     virtualNetworkName: 'Network-a'
     subnetName: 'Network-a-subnet-2'
-    allocateStaticIP: true
+    allocatePublicIP: true
+    osDiskStorageAccountType: 'StandardSSD_LRS'
   }
 ]
 
@@ -122,23 +125,26 @@ param keyvaultDetailsArray = [
   {
    keyVaultNamePrefix: 'keyvault-1'
    location: 'East US'
+   softDeleteRetentionInDays: 90
    accessPolicies : [
      {
-      objectId: ''
+      objectId: '21efc58e-ee53-44eb-aa03-b7ca27ab1fe7'
       permissions: {
         keys: ['list']
         secrets: ['list']
         certificates: ['list']
        }
      }
+
    ]
  } 
  {
    keyVaultNamePrefix: 'keyvault-2'
    location: 'East US'
+   softDeleteRetentionInDays:90
    accessPolicies : [
      {
-      objectId: ''
+      objectId: '21efc58e-ee53-44eb-aa03-b7ca27ab1fe7'
       permissions: {
         keys: ['list']
         secrets: ['list']
@@ -164,15 +170,19 @@ param WebappSku = 'F1'
 
 param WebappPlanOperatingSystem = 'linux'
 
+param appServicePlanLocation = location
+
 param appServices  = [
   { 
     appServicePrefix: 'finance-app'
     FxVersion : 'NODE|20-lts'
     webAppPrefix : 'finance'
+    location : location
   }
   { 
     appServicePrefix: 'dev-app'
     FxVersion : 'PYTHON|3.12'
     webAppPrefix : 'dev'
+    location : location
   }
 ]

@@ -12,6 +12,7 @@ type appServiceDetails = ({
     appServicePrefix: string
     FxVersion : string
     webAppPrefix : string
+    location : string
 
 })[]
 
@@ -32,7 +33,7 @@ param sku string = 'F1' // The SKU of App Service Plan
 ])
 param OperatingSystem string
 
-param location string
+param appServicePlanLocation string
 
 param appServices appServiceDetails
 
@@ -58,7 +59,7 @@ Resources for AppService Module
 
 resource appServiceWindowsPlan 'Microsoft.Web/serverfarms@2023-01-01' = if (OperatingSystem == 'windows') {
   name: appServicePlanName
-  location: location
+  location: appServicePlanLocation
   sku: {
     name: sku
   }
@@ -70,7 +71,7 @@ resource appServiceWindowsPlan 'Microsoft.Web/serverfarms@2023-01-01' = if (Oper
 
 resource appServiceLinuxPlan 'Microsoft.Web/serverfarms@2023-01-01' = if (OperatingSystem == 'linux') {
   name: appServicePlanName
-  location: location
+  location: appServicePlanLocation
   sku: {
     name: sku
   }
@@ -82,7 +83,7 @@ resource appServiceLinuxPlan 'Microsoft.Web/serverfarms@2023-01-01' = if (Operat
 
 resource appService 'Microsoft.Web/sites@2023-01-01' = [ for webapp in appServices : {
   name: '${webapp.webAppPrefix}-${substring(uniqueString(resourceGroup().id),0,5)}'
-  location: location
+  location: webapp.location
   properties: {
     serverFarmId: OperatingSystem == 'windows' ? appServiceWindowsPlan.id :appServiceLinuxPlan.id
     siteConfig: OperatingSystem == 'windows' ? {

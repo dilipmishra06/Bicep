@@ -26,14 +26,17 @@ type virtualMachineDetails = ({
     @description('Location of the Virtual Machine.')
     location: string
 
-    @description('Subnet name for the deployment of Virtual Machine.')
+    @description('Vnet name for the deployment of Virtual Machine.')
     virtualNetworkName: string
 
     @description('Subnet name for the deployment of Virtual Machine.')
     subnetName: string
 
-    @description('Location for all resources.')
-    allocateStaticIP: bool
+    @description('Allocate static IP for the VM.')
+    allocatePublicIP: bool
+
+    @description('OsDisk Storage Account type for the VM')
+    osDiskStorageAccountType : string 
 
 })[]
 
@@ -63,7 +66,7 @@ var privateIPAllocationMethod = 'Dynamic'
 var publicIPAllocationMethod = 'Dynamic'
 var publicIpSku = 'Basic'
 
-var osDiskStorageAccountType = 'StandardSSD_LRS'
+
 var osDiskCreateOption = 'FromImage'
 
 var dataDiskSizeGB = 1024
@@ -83,7 +86,7 @@ Resources for Virtual Network Module
 
 */
 resource publicIps 'Microsoft.Network/publicIPAddresses@2022-05-01' = [
-  for (vm,index) in virtualMachines : if (vm.allocateStaticIP) {
+  for (vm,index) in virtualMachines : if (vm.allocatePublicIP) {
     name: 'public-vm-${index+1}'
     location: vm.location
     sku: {
@@ -108,7 +111,7 @@ resource nics 'Microsoft.Network/networkInterfaces@2022-05-01' = [
           name: 'ipconfig-${index+1}'
           properties: {
             privateIPAllocationMethod: privateIPAllocationMethod
-            publicIPAddress: vm.allocateStaticIP ? {
+            publicIPAddress: vm.allocatePublicIP ? {
               id: resourceId('Microsoft.Network/publicIPAddresses','public-vm-${index+1}')
             } : null
             subnet: {
@@ -118,7 +121,7 @@ resource nics 'Microsoft.Network/networkInterfaces@2022-05-01' = [
         }
       ]
     }
-    dependsOn: vm.allocateStaticIP ? [publicIps] : []
+    dependsOn: vm.allocatePublicIP ? [publicIps] : []
   }
 ]
 
@@ -146,7 +149,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = [
         osDisk: {
           createOption: osDiskCreateOption
           managedDisk: {
-            storageAccountType: osDiskStorageAccountType
+            storageAccountType: vm.osDiskStorageAccountType
           }
         }
         dataDisks: [
@@ -165,6 +168,6 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = [
         ]
       }
     }
-    dependsOn: vm.allocateStaticIP ? [publicIps] : []
+    dependsOn: vm.allocatePublicIP ? [publicIps] : []
   }
 ]

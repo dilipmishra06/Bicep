@@ -58,14 +58,17 @@ type virtualMachineDetails = ({
     @description('Location of the Virtual Machine.')
     location: string
 
-    @description('Subnet name for the deployment of Virtual Machine.')
+    @description('Vnet name for the deployment of Virtual Machine.')
     virtualNetworkName: string
 
     @description('Subnet name for the deployment of Virtual Machine.')
     subnetName: string
 
-    @description('Location for all resources.')
-    allocateStaticIP: bool
+    @description('Allocate Public IP for the VM')
+    allocatePublicIP: bool
+
+    @description('OsDisk Storage Account type for the VM')
+    osDiskStorageAccountType : string
 
 })[]
 
@@ -89,6 +92,9 @@ location : string
 @description('Specifies the accesPolicies for the key vault.')
 accessPolicies: array
 
+@description('Specifies the softDeleteRetentionInDays for the key vault.')
+softDeleteRetentionInDays : int
+
 })[]
 
 /*
@@ -110,6 +116,9 @@ type appServiceDetails = ({
 
   @description('Specifies the prefix for the webapp name')
   webAppPrefix : string
+  
+  @description('Specifies the location for the webapp')
+  location : string
 
 })[]
 
@@ -166,6 +175,7 @@ Parameters for keyvault Module
 ])
 param keyvaultSkuName string
 
+
 @description('Object Array containing keyvault details')
 param keyvaultDetailsArray keyvaultparams
 
@@ -177,7 +187,7 @@ Parameters for Appservice Module
 ````````````````````````````````
 
 */
-param WebappSku string = 'F1' 
+param WebappSku string 
 
 @allowed([
   'linux'
@@ -186,6 +196,8 @@ param WebappSku string = 'F1'
 param WebappPlanOperatingSystem string
 
 param appServices appServiceDetails
+
+param appServicePlanLocation string
 
 
 /*
@@ -239,7 +251,7 @@ module appservice 'appservice.bicep' = {
   name: 'appservice-deployment'
   params:{
 
-    location: location
+    appServicePlanLocation : appServicePlanLocation
     sku: WebappSku
     appServices: appServices
     OperatingSystem: WebappPlanOperatingSystem

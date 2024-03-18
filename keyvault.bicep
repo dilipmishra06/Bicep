@@ -18,6 +18,10 @@ location : string
 @description('Specifies the accesPolicies for the key vault.')
 accessPolicies: array
 
+@description('Specifies the softDeleteRetentionInDays for the key vault.')
+softDeleteRetentionInDays : int
+
+
 })[]
 
 /*
@@ -58,7 +62,6 @@ var enabledForTemplateDeployment = false
 
 var enableSoftDelete = true
 
-var softDeleteRetentionInDays = 90
 
 var skuFamily = 'A'
 
@@ -85,7 +88,7 @@ resource keyvault 'Microsoft.KeyVault/vaults@2022-07-01' = [for kv in keyvaultDe
     enabledForTemplateDeployment: enabledForTemplateDeployment
     tenantId: tenantId
     enableSoftDelete: enableSoftDelete
-    softDeleteRetentionInDays: softDeleteRetentionInDays
+    softDeleteRetentionInDays: kv.softDeleteRetentionInDays
     accessPolicies: [ for ap in kv.accessPolicies : {
         objectId: ap.objectId
         permissions: ap.permissions
