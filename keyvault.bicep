@@ -7,6 +7,7 @@ Types for Key Vault Module
 
 */
 
+
 type keyvaultparams = ({
   
 @description('Specifies the name of the key vault.')
@@ -23,6 +24,7 @@ softDeleteRetentionInDays : int
 
 
 })[]
+
 
 /*
 
@@ -58,7 +60,7 @@ var enabledForDeployment = false
 var enabledForDiskEncryption  = false
 
 @description('Specifies whether Azure Resource Manager is permitted to retrieve secrets from the key vault.')
-var enabledForTemplateDeployment = false
+var enabledForTemplateDeployment = true
 
 var enableSoftDelete = true
 
@@ -79,7 +81,7 @@ Resources for Key Vault Module
 
 */
 
-resource keyvault 'Microsoft.KeyVault/vaults@2022-07-01' = [for kv in keyvaultDetails :  {
+resource keyvault 'Microsoft.KeyVault/vaults@2023-07-01' = [for kv in keyvaultDetails :  {
   name: '${kv.keyVaultNamePrefix}-${substring(uniqueString(resourceGroup().id),0,5)}'
   location: kv.location
   properties: {
@@ -100,5 +102,4 @@ resource keyvault 'Microsoft.KeyVault/vaults@2022-07-01' = [for kv in keyvaultDe
       family: skuFamily
     }
   }
-}
-]
+}]

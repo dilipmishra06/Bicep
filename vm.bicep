@@ -9,14 +9,6 @@ Types used for VirtualMachine Module
 
 type virtualMachineDetails = ({
 
-    @description('Username for the Virtual Machine.')
-    adminUsername: string
-
-    @description('Password for the Virtual Machine.')
-    @minLength(12)
-    @secure()
-    adminPassword: string
-
     @description('OSimage of the Virtual Machine.')
     OSVersion: string
 
@@ -51,6 +43,7 @@ Parameters for VirtualMachine Module
 
 @description('Object array containing VM details')
 param virtualMachines virtualMachineDetails
+param keyVaultNamePrefix string
 
 
 /*
@@ -76,6 +69,10 @@ var dataDiskLogicalUnitNumber = 0
 var imageReferencePublisher = 'MicrosoftWindowsServer'
 var imageReferenceOffer = 'WindowsServer'
 var imageReferenceVersion = 'latest'
+
+var keyVaultName = '${keyVaultNamePrefix}-${substring(uniqueString(resourceGroup().id),0,5)}'
+var vmDetailsLength = length(virtualMachines)
+
 
 /*
 
@@ -125,6 +122,57 @@ resource nics 'Microsoft.Network/networkInterfaces@2022-05-01' = [
   }
 ]
 
+
+
+resource storeSecretKeyVault 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
+  name: 'createKeyVaultSecret'
+  location: resourceGroup().location
+  kind: 'AzurePowerShell'
+  
+  properties: {
+    
+    azPowerShellVersion:  '10.0' 
+    arguments: '-keyVaultName ${keyVaultName} -vmArrayLength ${vmDetailsLength}'
+    scriptContent: '''
+
+       param([string] $keyVaultName, [int] $vmArrayLength)
+       $passwordArray = New-Object string[] $vmArrayLength
+       $indices = 0..($vmArrayLength - 1)
+
+      foreach ($index in $indices) {
+        $username = "vm-$($index + 1)-es"
+        $pass1word = -join ((65..90 + 97..122 + 48..57 + 33 + 35..38 + 42 + 64 + 95) | Get-Random -Count 8 | ForEach-Object {[char]$_}) 
+        $pass2word = -join ((33..34 + 35..38 + 42 + 64 + 95) | Get-Random -Count 1 | ForEach-Object {[char]$_})
+        $pass3word = -join ((65..90) | Get-Random -Count 1 | ForEach-Object {[char]$_})
+        $pass4word = -join ((97..122) | Get-Random -Count 1 | ForEach-Object {[char]$_})
+        $pass5word = -join ((48..57) | Get-Random -Count 1 | ForEach-Object {[char]$_})
+        $password = "$pass1word$pass2word$pass3word$pass4word$pass5word"
+        $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
+        $passwordArray[$index] = $password
+      }
+        $DeploymentScriptOutputs = @{}
+        $DeploymentScriptOutputs['password'] = $passwordArray
+
+    '''
+    retentionInterval: 'PT1H'
+
+  }
+}
+
+resource keyvault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: keyVaultName
+}
+
+resource secret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = [for index in range(0, vmDetailsLength):{
+  parent: keyvault
+  name: 'vm-${index+1}-es'
+  properties: {
+    value:storeSecretKeyVault.properties.outputs.password[index]
+  }
+}]
+
+
+
 resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = [
   for (vm,index) in virtualMachines : {
     name: 'vm-${index+1}'
@@ -136,8 +184,8 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = [
       }
       osProfile: {
         computerName: 'vm-${index+1}'
-        adminUsername: vm.adminUsername
-        adminPassword: vm.adminPassword
+        adminUsername: 'vm-${index+1}-es'
+        adminPassword: storeSecretKeyVault.properties.outputs.password[index]
       }
       storageProfile: {
         imageReference: {
@@ -148,6 +196,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = [
         }
         osDisk: {
           createOption: osDiskCreateOption
+          deleteOption:'Delete'
           managedDisk: {
             storageAccountType: vm.osDiskStorageAccountType
           }
@@ -157,6 +206,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = [
             diskSizeGB: dataDiskSizeGB
             lun: dataDiskLogicalUnitNumber
             createOption: dataDiskCreateOption
+            deleteOption:'Delete'
           }
         ]
       }
@@ -168,6 +218,6 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = [
         ]
       }
     }
-    dependsOn: vm.allocatePublicIP ? [publicIps] : []
+    dependsOn: vm.allocatePublicIP ? [publicIps, secret] : [secret]
   }
 ]

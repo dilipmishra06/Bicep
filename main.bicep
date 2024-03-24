@@ -41,14 +41,6 @@ Types used in VirtualMachine Module
 
 type virtualMachineDetails = ({
 
-    @description('Username for the Virtual Machine.')
-    adminUsername: string
-
-    @description('Password for the Virtual Machine.')
-    @minLength(12)
-    @secure()
-    adminPassword: string
-
     @description('OSimage of the Virtual Machine.')
     OSVersion: string
 
@@ -94,6 +86,7 @@ accessPolicies: array
 
 @description('Specifies the softDeleteRetentionInDays for the key vault.')
 softDeleteRetentionInDays : int
+
 
 })[]
 
@@ -157,6 +150,8 @@ Parameters for Virtual Machines Module
 
 @description('Object Array containing detailes used for the deployment of Virtual Machines.')
 param virtualMachines virtualMachineDetails
+
+param keyVaultNamePrefix string
 
 
 /*
@@ -228,13 +223,16 @@ VirtualMachine Module
 ``````````````````````````````
 
 */
+
 module virtualMachine 'vm.bicep' = {
   name: 'vm-deployment'
   params:{
     virtualMachines: virtualMachines
+    keyVaultNamePrefix: keyVaultNamePrefix
   }
   dependsOn:[
     network
+    keyvault
   ]
 }
 
