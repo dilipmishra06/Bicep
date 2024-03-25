@@ -7,5 +7,5 @@ steps:
     inputs:
       azureSubscription: ""
       ScriptType: "InlineScript"
-      Inline: "New-AzResourceGroupDeployment -ResourceGroupName exampleRG -TemplateFile main.bicep -Mode Complete"
+      Inline: "New-AzResourceGroupDeploymentStack -Name demo-deploy-stack -ResourceGroupName exampleRG -TemplateFile main.bicep -TemplateParameterFile main.bicepparam -DenySettingsMode none -DeleteResources"
       azurePowerShellVersion: "LatestVersion"

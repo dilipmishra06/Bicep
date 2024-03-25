@@ -43,6 +43,8 @@ Parameters for VirtualMachine Module
 
 @description('Object array containing VM details')
 param virtualMachines virtualMachineDetails
+
+@description('Prefix of Keyvault to store VM passwords')
 param keyVaultNamePrefix string
 
 
@@ -123,39 +125,11 @@ resource nics 'Microsoft.Network/networkInterfaces@2022-05-01' = [
 ]
 
 
-
-resource storeSecretKeyVault 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
-  name: 'createKeyVaultSecret'
-  location: resourceGroup().location
-  kind: 'AzurePowerShell'
-  
-  properties: {
-    
-    azPowerShellVersion:  '10.0' 
-    arguments: '-keyVaultName ${keyVaultName} -vmArrayLength ${vmDetailsLength}'
-    scriptContent: '''
-
-       param([string] $keyVaultName, [int] $vmArrayLength)
-       $passwordArray = New-Object string[] $vmArrayLength
-       $indices = 0..($vmArrayLength - 1)
-
-      foreach ($index in $indices) {
-        $username = "vm-$($index + 1)-es"
-        $pass1word = -join ((65..90 + 97..122 + 48..57 + 33 + 35..38 + 42 + 64 + 95) | Get-Random -Count 8 | ForEach-Object {[char]$_}) 
-        $pass2word = -join ((33..34 + 35..38 + 42 + 64 + 95) | Get-Random -Count 1 | ForEach-Object {[char]$_})
-        $pass3word = -join ((65..90) | Get-Random -Count 1 | ForEach-Object {[char]$_})
-        $pass4word = -join ((97..122) | Get-Random -Count 1 | ForEach-Object {[char]$_})
-        $pass5word = -join ((48..57) | Get-Random -Count 1 | ForEach-Object {[char]$_})
-        $password = "$pass1word$pass2word$pass3word$pass4word$pass5word"
-        $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
-        $passwordArray[$index] = $password
-      }
-        $DeploymentScriptOutputs = @{}
-        $DeploymentScriptOutputs['password'] = $passwordArray
-
-    '''
-    retentionInterval: 'PT1H'
-
+module vmpasswords 'passwordGenerator.bicep' = {
+  name: 'vm-passwords-deployment-script'
+  params: {
+    count: vmDetailsLength
+    location: resourceGroup().location
   }
 }
 
@@ -167,8 +141,9 @@ resource secret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = [for index in r
   parent: keyvault
   name: 'vm-${index+1}-es'
   properties: {
-    value:storeSecretKeyVault.properties.outputs.password[index]
+    value: vmpasswords.outputs.passwordsArray[index]
   }
+  dependsOn:[vmpasswords]
 }]
 
 
@@ -185,7 +160,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = [
       osProfile: {
         computerName: 'vm-${index+1}'
         adminUsername: 'vm-${index+1}-es'
-        adminPassword: storeSecretKeyVault.properties.outputs.password[index]
+        adminPassword:  vmpasswords.outputs.passwordsArray[index]
       }
       storageProfile: {
         imageReference: {
