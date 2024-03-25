@@ -6,7 +6,7 @@ Use deploymentstacks to deploy resources as a single logical unit.
 
 New-AzResourceGroupDeploymentStack `
 >>   -Name "demo-deploy-stack" `
->>   -ResourceGroupName "kavifldemo" `
+>>   -ResourceGroupName "exampleRG" `
 >>   -TemplateFile "main.bicep" `
 >>   -DenySettingsMode "none" `
 >>   -TemplateParameterFile "main.bicepparam" `
