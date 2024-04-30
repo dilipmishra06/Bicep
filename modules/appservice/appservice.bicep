@@ -1,95 +1,56 @@
-/*
+param appServicePlanDetails array
 
-``````````````````````````````
-Types for AppService Module
+param appServiceDetails array
 
-``````````````````````````````
-
-*/
-
-type appServiceDetails = ({
-
-    appServicePrefix: string
-    FxVersion : string
-    webAppPrefix : string
-    location : string
-
-})[]
-
-/*
-
-``````````````````````````````
-Parameters for AppService Module
-
-``````````````````````````````
-
-*/
-
-param sku string = 'F1' // The SKU of App Service Plan
-
-@allowed([
-  'linux'
-  'windows'
-])
-param OperatingSystem string
-
-param appServicePlanLocation string
-
-param appServices appServiceDetails
-
-/*
-
-``````````````````````````````
-Variables for AppService Module
-
-``````````````````````````````
-
-*/
-
-var appServicePlanName = toLower('AppServicePlan-${substring(uniqueString(resourceGroup().id),0,5)}')
-
-/*
-
-``````````````````````````````
-Resources for AppService Module
-
-``````````````````````````````
-
-*/
-
-resource appServiceWindowsPlan 'Microsoft.Web/serverfarms@2023-01-01' = if (OperatingSystem == 'windows') {
-  name: appServicePlanName
-  location: appServicePlanLocation
-  sku: {
-    name: sku
+module appServicePlan 'serverfarm/serverfarm.bicep' = [for (plan, index) in appServicePlanDetails : {
+  name: 'appServicePlan-${uniqueString(deployment().name)}-${index}'
+  params: {
+    name: plan.name
+    sku: plan.sku
+    appServiceEnvironmentId: plan.appServiceEnvironmentId
+    location: plan.location
+    maximumElasticWorkerCount: plan.maximumElasticWorkerCount
+    perSiteScaling: plan.perSiteScaling
+    reserved: plan.reserved
+    tags: plan.tags
+    targetWorkerCount:plan.targetWorkerCount
+    targetWorkerSize: plan.targetWorkerSize
+    workerTierName: plan.workerTierName
+    zoneRedundant: plan.zoneRedundant
   }
-  kind: 'windows'
-  properties: OperatingSystem == 'linux' ? {
-    reserved: true
-  } : null
-}
+}]
 
-resource appServiceLinuxPlan 'Microsoft.Web/serverfarms@2023-01-01' = if (OperatingSystem == 'linux') {
-  name: appServicePlanName
-  location: appServicePlanLocation
-  sku: {
-    name: sku
-  }
-  properties:  {
-    reserved: true
-  }
-}
-
-
-resource appService 'Microsoft.Web/sites@2023-01-01' = [ for webapp in appServices : {
-  name: '${webapp.webAppPrefix}-${substring(uniqueString(resourceGroup().id),0,5)}'
-  location: webapp.location
-  properties: {
-    serverFarmId: OperatingSystem == 'windows' ? appServiceWindowsPlan.id :appServiceLinuxPlan.id
-    siteConfig: OperatingSystem == 'windows' ? {
-      windowsFxVersion: webapp.FxVersion }:{ 
-      linuxFxVersion: OperatingSystem
-    }
-
+module appService 'site/site.bicep' = [for (site, index) in appServiceDetails :  {
+  name: 'appService-${uniqueString(deployment().name)}-${index}'
+  dependsOn: [appServicePlan]
+  params: {
+    kind: site.kind
+    name: site.name
+    serverFarmResourceId:  resourceId('Microsoft.Web/serverfarms',site.serverFarmResourceName)
+    appServiceEnvironmentResourceId: site.appServiceEnvironmentResourceId
+    clientAffinityEnabled: site.clientAffinityEnabled
+    clientCertEnabled: site.clientCertEnabled
+    clientCertExclusionPaths: site.clientCertExclusionPaths
+    clientCertMode: site.clientCertMode
+    cloningInfo: site.cloningInfo
+    containerSize: site.containerSize
+    customDomainVerificationId: site.customDomainVerificationId
+    dailyMemoryTimeQuota: site.dailyMemoryTimeQuota
+    enabled: site.enabled
+    hostNameSslStates: site.hostNameSslStates
+    httpsOnly: site.httpsOnly
+    hyperV: site.hyperV
+    keyVaultAccessIdentityResourceId: site.keyVaultAccessIdentityResourceId
+    location: site.location
+    publicNetworkAccess: site.publicNetworkAccess
+    redundancyMode: site.redundancyMode
+    scmSiteAlsoStopped: site.scmSiteAlsoStopped
+    vnetRouteAllEnabled: site.vnetRouteAllEnabled
+    vnetImagePullEnabled: site.vnetImagePullEnabled
+    vnetContentShareEnabled: site.vnetContentShareEnabled
+    siteConfig: site.siteConfig
+    storageAccountRequired: site.storageAccountRequired
+    tags: site.tags
+    virtualNetworkSubnetId: site.virtualNetworkSubnetId
   }
 }]

@@ -1,108 +1,63 @@
 using './appservice.bicep'
 
-// /*
+param appServicePlanDetails = [
+  {
+    name: 'example-appService-plan-fl-lkjh'
+    sku: {
+      name :'F1'
+    }
+    appServiceEnvironmentId: ''
+    location:'East US'
+    maximumElasticWorkerCount: 1
+    perSiteScaling: false
+    reserved: false
+    tags: {
+      env : 'dev'
+    }
+    targetWorkerCount: 0
+    targetWorkerSize: 0
+    workerTierName: ''
+    zoneRedundant: false
 
-// ```````````````````````````````````````
-// Parameters for Virtual Machines Module
-
-// ````````````````````````````````````````
-
-// */
-
-// param virtualMachines = [
-//   {
-//     OSVersion: '2022-datacenter-azure-edition'
-//     vmSize: 'Standard_B1s'
-//     location: location
-//     virtualNetworkName: 'Network-a'
-//     subnetName: 'Network-a-subnet-1'
-//     allocatePublicIP: false
-//     osDiskStorageAccountType : 'StandardSSD_LRS'
-//   }
-//   {
-//     OSVersion: '2022-datacenter-azure-edition'
-//     vmSize: 'Standard_B1s'
-//     location: location
-//     virtualNetworkName: 'Network-a'
-//     subnetName: 'Network-a-subnet-2'
-//     allocatePublicIP: true
-//     osDiskStorageAccountType: 'StandardSSD_LRS'
-//   }
-// ]
-
-// param keyVaultNamePrefix = 'keyvault-1'
-
-
-// /*
-
-// ````````````````````````````````
-// Parameters for key vault Module
-
-// `````````````````````````````````
-
-// */
-
-// param keyvaultDetailsArray = [
-//   {
-//    keyVaultNamePrefix: 'keyvault-1'
-//    location: location
-//    softDeleteRetentionInDays: 90
-//    accessPolicies : [
-//      {
-//       objectId: ''
-//       permissions: {
-//         keys: ['list','create','get']
-//         secrets: ['list','set','get','delete','purge']
-//         certificates: ['list']
-//        }
-//      }
-//    ]
-//  } 
-//  {
-//    keyVaultNamePrefix: 'keyvault-2'
-//    location: location
-//    softDeleteRetentionInDays:90
-//    accessPolicies : [
-//      {
-//       objectId: ''
-//       permissions: {
-//         keys: ['list','create','get']
-//         secrets: ['list','set','get','delete','purge']
-//         certificates: ['list']
-//        }
-//      }
-//    ]
-//  }
-// ]
-
-// param keyvaultSkuName = 'standard'
-
-// /*
-
-// ``````````````````````````````````
-// Parameters for AppService Module
-
-// ``````````````````````````````````
-
-// */
-
-param sku = 'F1' 
-
-param OperatingSystem = 'linux'
-
-param appServicePlanLocation = 'East US'
-
-param appServices  = [
-  { 
-    appServicePrefix: 'finance-app'
-    FxVersion : 'NODE|20-lts'
-    webAppPrefix : 'finance'
-    location : 'East US'
   }
-  { 
-    appServicePrefix: 'dev-app'
-    FxVersion : 'PYTHON|3.12'
-    webAppPrefix : 'dev'
-    location : 'West US'
-  }
+
 ]
+param appServiceDetails = [
+
+  {
+    kind: 'app'
+    name: 'dev-appService-example-ertyu'
+    serverFarmResourceName: 'example-appService-plan-fl-lkjh'
+    appServiceEnvironmentResourceId: ''
+    clientAffinityEnabled: true
+    clientCertEnabled: false
+    clientCertExclusionPaths: ''
+    clientCertMode: 'Optional'
+    cloningInfo: {}
+    containerSize: -1
+    customDomainVerificationId: ''
+    dailyMemoryTimeQuota: -1
+    enabled: true
+    hostNameSslStates: []
+    httpsOnly: true
+    hyperV: false
+    keyVaultAccessIdentityResourceId: ''
+    location: 'East US'
+    publicNetworkAccess: 'Enabled'
+    redundancyMode: 'None'
+    scmSiteAlsoStopped: false
+    vnetRouteAllEnabled: false
+    vnetImagePullEnabled: false
+    vnetContentShareEnabled: false
+    siteConfig: { 
+     windowsFxVersion: 'dotnet:8'
+    }
+    storageAccountRequired: false
+    tags: {
+      env : 'dev'
+    }
+    virtualNetworkSubnetId: ''
+  }
+
+]
+

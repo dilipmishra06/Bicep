@@ -125,7 +125,7 @@ resource nics 'Microsoft.Network/networkInterfaces@2022-05-01' = [
 ]
 
 
-module vmpasswords 'passwordGenerator.bicep' = {
+module vmpasswords './modules/passwordGenerator/passwordGenerator.bicep' = {
   name: 'vm-passwords-deployment-script'
   params: {
     count: vmDetailsLength
