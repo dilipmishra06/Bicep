@@ -17,7 +17,7 @@ param publicIPAllocationMethod string = 'Static'
   'Basic'
   'Standard'
 ])
-param skuName string = 'Standard'
+param skuName string = 'Basic'
 
 
 @description('Optional. Tier of a public IP address SKU.')

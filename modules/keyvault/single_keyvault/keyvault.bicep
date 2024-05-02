@@ -48,7 +48,7 @@ param enablePurgeProtection bool = true
   'premium'
   'standard'
 ])
-param vaultSku string = 'premium'
+param vaultSku string = 'standard'
 
 @description('Optional. Service endpoint object information. For security reasons, it is recommended to set the DefaultAction Deny.')
 param networkAcls object = {}
@@ -60,16 +60,12 @@ param networkAcls object = {}
   'Enabled'
   'Disabled'
 ])
-param publicNetworkAccess string = 'Disabled'
+param publicNetworkAccess string = 'Enabled'
 
 
 @description('Optional. Resource tags.')
 param tags object?
 
-
-// =========== //
-// Variables   //
-// =========== //
 
 var formattedAccessPolicies = [for accessPolicy in accessPolicies: {
   applicationId: contains(accessPolicy, 'applicationId') ? accessPolicy.applicationId : ''
@@ -111,7 +107,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' = {
 }
 
 
-module keyVault_accessPolicies './access_policies/access_policies.bicep' = if (!empty(accessPolicies)) {
+module keyVault_accessPolicies '../access_policies/access_policies.bicep' = if (!empty(accessPolicies)) {
   name: '${uniqueString(deployment().name, location)}-KeyVault-AccessPolicies'
   params: {
     keyVaultName: keyVault.name
@@ -119,7 +115,7 @@ module keyVault_accessPolicies './access_policies/access_policies.bicep' = if (!
   }
 }
 
-module keyVault_secrets 'secret/secret.bicep' = [for (secret, index) in secretList: {
+module keyVault_secrets '../secret/secret.bicep' = [for (secret, index) in secretList: {
   name: '${uniqueString(deployment().name, location)}-KeyVault-Secret-${index}'
   params: {
     name: secret.name
@@ -134,7 +130,7 @@ module keyVault_secrets 'secret/secret.bicep' = [for (secret, index) in secretLi
 }]
 
 
-module keyVault_keys 'key/key.bicep' = [for (key, index) in keys: {
+module keyVault_keys '../key/key.bicep' = [for (key, index) in keys: {
   name: '${uniqueString(deployment().name, location)}-KeyVault-Key-${index}'
   params: {
     name: key.name
